@@ -6,35 +6,360 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-    font-family: Arial, sans-serif;
-    background:#f0f8ff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    margin:0;
+/* Tối ưu hóa CSS */
+body {
+    font-family: 'Comic Sans MS', 'Arial', sans-serif; /* Phông chữ thân thiện */
+    background: linear-gradient(135deg, #f0e68c, #add8e6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
 }
-#game-container{
-    background:#fff;
-    border-radius:20px;
-    padding:30px;
-    max-width:520px;
-    width:95%;
-    box-shadow:0 10px 20px rgba(0,0,0,.15);
-    text-align:center;
+#game-container {
+    background-color: #ffffff;
+    border-radius: 30px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    padding: 30px 40px;
+    width: 95%;
+    max-width: 550px;
+    border: 5px solid #ffb6c1; /* Viền màu nổi bật */
 }
-h1{color:#ff69b4;margin-top:0}
-#controls-top{
-    display:flex;
-    justify-content:space-between;
-    gap:10px;
-    margin-bottom:10px;
+h1 {
+    color: #ff69b4;
+    font-size: 2.2em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
 }
-select,button{
-    font-size:16px;
-    padding:8px 12px;
-    border-radius:10px;
+
+#controls-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Kiểu chung cho tất cả các nút và select */
+select, button {
+    font-size: 16px;
+    padding: 10px 15px;
+    border-radius: 20px;
+    border: none;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+/* Nút Bắt đầu */
+#startButton {
+    background: #32cd32; /* Xanh lá chanh */
+    color: white;
+    font-size: 1.5em;
+    padding: 15px 30px;
+    border-radius: 30px;
+    box-shadow: 0 5px 0 #1e8449; /* Hiệu ứng 3D */
+}
+#startButton:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #1e8449;
+}
+
+/* Nút Điều khiển trên cùng */
+#levelSelect, #soundBtn {
+    flex-grow: 1;
+    background: #add8e6; /* Xanh nhạt */
+    color: #333;
+    box-shadow: 0 3px #89afc3;
+}
+#levelSelect {
+    cursor: pointer;
+}
+
+/* Đồng hồ */
+#timer-display {
+    font-size: 38px;
+    color: #ff4500;
+    font-weight: 900;
+    margin: 15px 0;
+    animation: pulse 1s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Khu vực phép tính */
+#question-area {
+    background: #fffacd;
+    padding: 25px;
+    border-radius: 15px;
+    margin: 15px 0;
+    border: 3px dashed #ffa07a;
+}
+#current-question {
+    font-size: 48px;
+    font-weight: 900;
+    color: #333;
+    margin: 0;
+}
+
+/* Lưới đáp án */
+.answer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+.answer-btn {
+    font-size: 28px;
+    padding: 20px;
+    border-radius: 15px;
+    background: #00bfff; /* Xanh da trời */
+    color: #fff;
+    box-shadow: 0 5px 0 #007bb6;
+}
+.answer-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #007bb6;
+}
+
+/* Phản hồi */
+#feedback-area {
+    min-height: 50px;
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 15px;
+    padding: 5px;
+    color: #2e8b57;
+}
+
+/* Kết quả cuối cùng */
+.summary-title {
+    font-size: 2.5em;
+    color: #ff69b4;
+    font-weight: 900;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+<div id="game-container">
+<h1>Chơi và Học Toán TTH (0–20)</h1>
+
+<div id="controls-top">
+    <select id="levelSelect">
+        <option value="easy">Dễ (25s)</option>
+        <option value="medium" selected>Trung bình (20s)</option>
+        <option value="hard">Khó (15s)</option>
+    </select>
+    <button onclick="toggleSound()" id="soundBtn">🔊 Âm thanh: BẬT</button>
+</div>
+
+<button id="startButton" onclick="startGame()">BẮT ĐẦU</button>
+
+<div id="game-area" style="display:none">
+    <div id="timer-display"></div>
+
+    <div id="question-area">
+        <p id="current-question"></p>
+    </div>
+
+    <div class="answer-grid" id="answer-grid"></div>
+
+    <div id="feedback-area"></div>
+    <div id="progress-display"></div>
+</div>
+</div>
+
+<script>
+/* ===== CẤU HÌNH ĐÃ CẬP NHẬT ===== */
+const GIOI_HAN = 20;
+const SO_BAI = 10;
+const THOI_GIAN_LEVEL = {
+    easy: 25,     // Dễ: 25 giây
+    medium: 20,   // Trung bình: 20 giây
+    hard: 15      // Khó: 15 giây
+};
+
+/* ===== BIẾN ===== */
+let bai=0, dapAn=0, timer, timeLeft;
+let score={correct:0,incorrect:0};
+let soundOn=true;
+
+/* ===== ÂM THANH & GIỌNG ĐỌC ===== */
+const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+function beep(type){
+    if(!soundOn) return;
+    let o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value=type==="correct"?880:220;
+    g.gain.value=.25;
+    o.start(); o.stop(audioCtx.currentTime+.3);
+}
+function speak(text){
+    if(!soundOn) return;
+    speechSynthesis.cancel();
+    let u=new SpeechSynthesisUtterance(text);
+    u.lang="vi-VN";
+    speechSynthesis.speak(u);
+}
+function toggleSound(){
+    soundOn=!soundOn;
+    document.getElementById("soundBtn").innerText=
+        soundOn?"🔊 Âm thanh: BẬT":"🔇 Âm thanh: TẮT";
+}
+
+/* ===== SỐ → CHỮ TIẾNG VIỆT (0–20) ===== */
+const soChu = [
+    "không","một","hai","ba","bốn","năm","sáu","bảy","tám","chín",
+    "mười","mười một","mười hai","mười ba","mười bốn",
+    "mười lăm","mười sáu","mười bảy","mười tám","mười chín","hai mươi"
+];
+function docSo(n){
+    return soChu[n] ?? n.toString();
+}
+
+/* ===== ĐỌC PHÉP TOÁN ===== */
+function docPhepToan(text){
+    let s = text
+        .replace(/\d+/g, m => docSo(parseInt(m)))
+        .replace(/\+/g," cộng ")
+        .replace(/\-/g," trừ ")
+        .replace("="," bằng mấy");
+    speak(s);
+}
+
+/* ===== TẠO CÂU HỎI ===== */
+function taoCauHoi(){
+    let level=document.getElementById("levelSelect").value;
+    // Số bước phép tính: Dễ: 1, TB: 2, Khó: 3
+    let steps=level==="easy"?1:level==="medium"?2:3; 
+    let kq=Math.floor(Math.random()*GIOI_HAN);
+    let text=kq.toString();
+
+    for(let i=0;i<steps;i++){
+        let op=Math.random()<.5?"+":"-";
+        let so=Math.floor(Math.random()*10)+1;
+        
+        // Cố gắng giữ phép tính trong phạm vi 0-20
+        if(op==="+" && kq+so<=GIOI_HAN) {
+            kq+=so;
+        } else if(op==="-" && kq-so>=0) {
+            kq-=so;
+        } else{
+            // Nếu không thể giữ nguyên phép tính, đảo ngược:
+            if(op==="+"){ // Nếu + mà quá 20, chuyển sang -
+                op="-";
+                so=Math.min(so, kq); // Trừ tối đa bằng kết quả hiện tại
+                kq-=so;
+            } else { // Nếu - mà ra âm, chuyển sang +
+                op="+";
+                so=Math.min(so, GIOI_HAN - kq); // Cộng tối đa bằng 20 - kq
+                kq+=so;
+            }
+        }
+        text+=` ${op} ${so}`;
+    }
+    return{question:text+" = ?",answer:kq};
+}
+function taoDapAn(d){
+    let s=new Set([d]);
+    while(s.size<4){
+        // Tạo các đáp án gây nhiễu gần đáp án đúng (-5 đến +5)
+        let x=d+Math.floor(Math.random()*11)-5; 
+        if(x>=0&&x<=GIOI_HAN)s.add(x);
+    }
+    return[...s].sort(()=>Math.random()-.5);
+}
+
+/* ===== TIMER ĐÃ CẬP NHẬT ===== */
+function startTimer(){
+    clearInterval(timer);
+    let level = document.getElementById("levelSelect").value;
+    timeLeft = THOI_GIAN_LEVEL[level]; 
+    
+    updateTimer();
+    timer=setInterval(()=>{
+        timeLeft--;
+        updateTimer();
+        if(timeLeft<=0){
+            clearInterval(timer);
+            beep("wrong");
+            speak("Hết giờ");
+            showAnswer();
+        }
+    },1000);
+}
+function updateTimer(){
+    document.getElementById("timer-display").innerText=`⏳ ${timeLeft}s`;
+}
+
+/* ===== GAME ===== */
+function startGame(){
+    bai=0; score={correct:0,incorrect:0};
+    document.getElementById("startButton").style.display="none";
+    document.getElementById("game-area").style.display="block";
+    next();
+}
+function next(){
+    if(bai>=SO_BAI) return endGame();
+    bai++;
+    document.getElementById("feedback-area").innerText="";
+    document.getElementById("progress-display").innerText=`Bài ${bai}/${SO_BAI}`;
+
+    let q=taoCauHoi();
+    dapAn=q.answer;
+    document.getElementById("current-question").innerText=q.question;
+    docPhepToan(q.question);
+
+    let g=document.getElementById("answer-grid");
+    g.innerHTML="";
+    taoDapAn(dapAn).forEach(v=>{
+        let b=document.createElement("button");
+        b.className="answer-btn";
+        b.innerText=v;
+        b.onclick=()=>check(v);
+        g.appendChild(b);
+    });
+    startTimer();
+}
+function check(v){
+    clearInterval(timer);
+    // Vô hiệu hóa các nút khác ngay khi trả lời để tránh bấm liên tục
+    document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = true); 
+
+    if(v===dapAn){
+        score.correct++;
+        beep("correct"); speak("Đúng rồi");
+        document.getElementById("feedback-area").innerText="🎉 ĐÚNG RỒI! 🎉";
+        setTimeout(next,1500);
+    }else{
+        score.incorrect++;
+        beep("wrong"); speak("Sai rồi");
+        showAnswer();
+    }
+}
+function showAnswer(){
+    document.getElementById("feedback-area").innerText=
+        `❌ SAI RỒI! Đáp án đúng là ${dapAn}`;
+    setTimeout(next,2000);
+}
+function endGame(){
+    document.getElementById("game-area").innerHTML=`
+        <p class="summary-title">🥳 HOÀN THÀNH!</p>
+        <p>✅ ĐÚNG: ${score.correct} / ${SO_BAI}</p>
+        <p>❌ SAI: ${score.incorrect} / ${SO_BAI}</p>`;
+    let b=document.getElementById("startButton");
+    b.innerText="CHƠI LẠI";
+    b.style.display="inline-block";
+    b.onclick=()=>location.reload();
+}
+</script>
+</body>
+</html>
+border-radius:10px;
     border:none;
 }
 button{cursor:pointer}
